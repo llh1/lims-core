@@ -6,6 +6,7 @@ require 'facets/array'
 
 require 'virtus'
 require 'aequitas/virtus_integration'
+require 'active_model'
 
 class Object
   def andtap(&block)
