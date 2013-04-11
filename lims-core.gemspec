@@ -27,6 +27,7 @@ Gem::Specification.new do |s|
   s.add_dependency('aequitas')
   s.add_dependency('sequel')
   s.add_dependency('active_support')
+  s.add_dependency('activemodel')
   s.add_dependency('uuid')
   s.add_dependency('state_machine')
   s.add_dependency('bunny', '0.9.0.pre4')
