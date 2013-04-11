@@ -36,5 +36,24 @@ module Lims::Core::Laboratory
       subject.max_volume = max_volume
       subject.max_volume.should == max_volume
     end
+    
+    it "is not dirty if no assignment" do
+      subject.changed?.should == false
+    end
+
+    it "is dirty after assignment" do
+      subject.max_volume = 10
+      subject.changed?.should == true
+    end
+
+    it "keeps record of the changed attributes" do
+      subject.max_volume = 10
+      subject.changed.should == ["max_volume"]
+    end
+
+    it "keeps record of the changed attributes and changed values" do
+      subject.max_volume = 10
+      subject.changes.should == {'max_volume' => [nil, 10]}
+    end
   end
 end
