@@ -7,6 +7,7 @@ module Lims::Core
     def self.included(klass)
       klass.class_eval do
         include Virtus
+        include Virtus::Dirty
         include Aequitas
         include AccessibleViaSuper
         extend Forwardable
@@ -14,8 +15,85 @@ module Lims::Core
       end
     end
 
+
+    module Virtus::Dirty
+      def self.included(klass)
+        klass.class_eval do
+          include ActiveModel::Dirty
+        end
+      end
+
+      def setup_dirty_tracking
+        bind_virtus_to_dirty_tracking 
+        redefine_writers_with_dirty_tracking
+      end
+
+      def start_dirty_tracking
+        @dirty_tracking_started = true
+      end
+
+      def dirty_attributes_tracked?
+        @dirty_tracking_started
+      end
+
+      def stop_dirty_tracking
+        @dirty_tracking_started = false
+        clear_dirty_tracking
+      end
+
+      private
+
+      # @changed_attributes is a public instance
+      # variable from ActiveModel::Dirty. We clear it
+      # to erase the dirty status of an object.
+      def clear_dirty_tracking
+        @changed_attributes.clear
+      end
+
+      # Using ActiveModel::Dirty, we need to pass to the method
+      # 'define_attribute_methods' each method we want to track.
+      # We pass it all the virtus attributes.
+      def bind_virtus_to_dirty_tracking
+        virtus_attributes = self.attributes.keys
+        self.class.class_eval do
+          define_attribute_methods(virtus_attributes)
+        end
+      end
+
+      # Before each change of the tracked attribute, we need 
+      # to call the ActiveModel::Dirty#attribute_will_change! method.
+      # We rewrite below the writer method for each virtus attributes
+      # which call the original writer method and call the 
+      # attribute_will_change! method only if the value received by the
+      # writer is a new value.
+      def redefine_writers_with_dirty_tracking
+        self.attributes.each do |attribute, value|
+          method = "#{attribute}=".to_sym
+          method_alias = "__#{method.to_s}_alias__".to_sym
+
+          self.class.class_eval do
+            next if private_instance_methods.include?(method_alias)
+            alias_method method_alias, method 
+            private method_alias
+
+            # After we redefine the method, we should set 
+            # the same visibility as before.
+            original_method_private = private_instance_methods.include?(method)
+            define_method(method) do |*args|
+              previous_value = __send__(attribute)
+              __send__("#{attribute}_will_change!") unless args.first == previous_value 
+              result = __send__(method_alias, *args)
+            end
+            private method if original_method_private
+          end
+        end
+      end
+    end
+
+
     module AccessibleViaSuper
       def initialize(*args, &block)
+        setup_dirty_tracking
         # readonly attributes are normaly not allowed in constructor
         # by Virtus. We need to call set_attributes explicitely
         options = args.extract_options!
