@@ -37,6 +37,7 @@ module Lims::Core
           @in_session = true
           to_return = block[self]
           @in_session = false
+          delete_unchanged_objects
           save_all
           return to_return
         ensure
@@ -145,6 +146,10 @@ module Lims::Core
         end
 
         private
+        def delete_unchanged_objects
+          @objects.keep_if { |o| o.changed? }
+        end
+
         # save all objects which needs to be
         def save_all()
           @store.transaction do
