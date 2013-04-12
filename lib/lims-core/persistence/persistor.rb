@@ -37,10 +37,11 @@ module Lims::Core
       # @param [Fixnum, Hash] id the id in the database
       # @return [Object,nil] nil if  object not found.
       def [](id)
-        case id
-        when Fixnum then get_or_create_single_model(id)
-        when Hash then find_by(filter_attributes_on_save(id), :single => true)
-        end
+        object = case id
+                 when Fixnum then get_or_create_single_model(id)
+                 when Hash then find_by(filter_attributes_on_save(id), :single => true)
+                 end
+        object.tap { |o| o.clear_dirty_tracking } if object
       end
 
       # save an object and return is id or nil if failure
