@@ -19,6 +19,7 @@ module Lims::Core
     module Virtus::Dirty
       def self.included(klass)
         klass.class_eval do
+          # API: http://api.rubyonrails.org/classes/ActiveModel/Dirty.html
           include ActiveModel::Dirty
         end
       end
@@ -26,10 +27,12 @@ module Lims::Core
       def setup_dirty_tracking
         bind_virtus_to_dirty_tracking 
         redefine_writers_with_dirty_tracking
+        start_dirty_tracking
       end
 
       def start_dirty_tracking
         @dirty_tracking_started = true
+        self
       end
 
       def dirty_attributes_tracked?
@@ -39,16 +42,17 @@ module Lims::Core
       def stop_dirty_tracking
         @dirty_tracking_started = false
         clear_dirty_tracking
+        self
       end
-
-      private
 
       # @changed_attributes is a public instance
       # variable from ActiveModel::Dirty. We clear it
       # to erase the dirty status of an object.
       def clear_dirty_tracking
-        @changed_attributes.clear
+        @changed_attributes.clear if @changed_attributes
       end
+
+      private
 
       # Using ActiveModel::Dirty, we need to pass to the method
       # 'define_attribute_methods' each method we want to track.
@@ -81,7 +85,9 @@ module Lims::Core
             original_method_private = private_instance_methods.include?(method)
             define_method(method) do |*args|
               previous_value = __send__(attribute)
-              __send__("#{attribute}_will_change!") unless args.first == previous_value 
+              if dirty_attributes_tracked? && args.first != previous_value
+                __send__("#{attribute}_will_change!")
+              end
               result = __send__(method_alias, *args)
             end
             private method if original_method_private
