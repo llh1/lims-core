@@ -84,7 +84,6 @@ module Lims::Core
         # about the loading of an object.
         # MUST be called by persistors creating Resources.
         def on_object_load(object)
-          debugger
           @loaded_objects[object.object_id] = object.resource_deep_copy
           self << object
         end
@@ -163,13 +162,8 @@ module Lims::Core
           filter_unchanged_objects
           @store.transaction do
             @save_in_progress = true # allows saving
-            @to_be_saved_objects.each do |object|
-              if @to_delete.include?(object)
-                delete_in_real(object)
-              else
-                save(object)
-              end
-            end
+            @to_delete.each { |object| delete_in_real(object) }
+            @to_be_saved_objects.each { |object| save(object) }
             @save_in_progress = false
           end
           @to_be_saved_objects.clear
