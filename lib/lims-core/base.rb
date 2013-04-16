@@ -21,11 +21,6 @@ module Lims::Core
         self.attributes.each do |name, attribute|
           if attribute.class.ancestors.include?(Lims::Core::Resource)
             copied_attributes[name] = attribute.resource_deep_copy
-          elsif attribute.class == Array
-            copied_attributes[name] = []
-            attribute.each do |a|
-              copied_attributes[name] << #todo
-            end
           else
             copied_attributes[name] = begin
                                         attribute.clone
@@ -34,7 +29,14 @@ module Lims::Core
                                       end
           end
         end
-        self.class.new(copied_attributes)
+
+        self.class.new(copied_attributes).tap do |copy|
+          if self.respond_to?(:content)
+            self.zip((0..self.size-1)).each do |element, index|
+              copy[index] = element.resource_deep_copy if element.respond_to?(:resource_deep_copy)
+            end
+          end
+        end
       end
     end
 
