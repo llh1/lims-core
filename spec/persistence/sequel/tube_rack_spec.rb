@@ -50,13 +50,14 @@ module Lims::Core
         context "when modified within a session" do
           before do
             store.with_session do |s|
+              debugger
               tube_rack = s.tube_rack[tube_rack_id]
               tube_rack[0].clear
               tube_rack[1]= new_empty_tube
               tube_rack[1]<< aliquot
             end
           end
-          it "should be saved" do
+          it "should be saved", :focus => true do
             store.with_session do |session|
               f = session.tube_rack[tube_rack_id]
               f[0].should == [] # empty tube

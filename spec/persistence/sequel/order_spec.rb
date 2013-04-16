@@ -54,7 +54,7 @@ module Lims::Core
             end
           end
 
-          it "can have empty items added" do
+          it "can have empty items added", :focus => true do
             load_order(order_id) do |order|
               order.add_target(:intermediate_target)
             end

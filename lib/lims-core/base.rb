@@ -9,8 +9,32 @@ module Lims::Core
         include Virtus
         include Aequitas
         include AccessibleViaSuper
+        include Utility
         extend Forwardable
         extend ClassMethod
+      end
+    end
+
+    module Utility
+      def resource_deep_copy                                                                                                                                                                                                                                                    
+        copied_attributes = {}
+        self.attributes.each do |name, attribute|
+          if attribute.class.ancestors.include?(Lims::Core::Resource)
+            copied_attributes[name] = attribute.resource_deep_copy
+          elsif attribute.class == Array
+            copied_attributes[name] = []
+            attribute.each do |a|
+              copied_attributes[name] << #todo
+            end
+          else
+            copied_attributes[name] = begin
+                                        attribute.clone
+                                      rescue TypeError
+                                        attribute
+                                      end
+          end
+        end
+        self.class.new(copied_attributes)
       end
     end
 
@@ -34,7 +58,8 @@ module Lims::Core
     # @param other
     # @return [Boolean]
     def ==(other)
-      self.attributes == (other.respond(:attributes) || {} )
+      self.attributes == (other.respond(:attributes) || {} ) && 
+        (self.respond(:values) || {}) == (other.respond(:values) || {})
     end
 
 

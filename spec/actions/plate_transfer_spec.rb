@@ -79,7 +79,7 @@ module Lims::Core
             end.call
           end
 
-          context "when called without updating aliquot type" do
+          context "when called without updating aliquot type", :focus2 => true do
             subject do
               described_class.new(:store => store, :user => user, :application => application) do |a, s|
                 a.source = s.plate[source_id]

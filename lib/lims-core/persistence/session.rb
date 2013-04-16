@@ -24,6 +24,8 @@ module Lims::Core
           @to_delete = Set.new
           @in_session = false
           @saved = Set.new
+          @loaded_objects = {}
+          @to_be_saved_objects = []
           @persistor_map = {}
         end
 
@@ -82,6 +84,8 @@ module Lims::Core
         # about the loading of an object.
         # MUST be called by persistors creating Resources.
         def on_object_load(object)
+          debugger
+          @loaded_objects[object.object_id] = object.resource_deep_copy
           self << object
         end
 
@@ -145,11 +149,21 @@ module Lims::Core
         end
 
         private
+
+        def filter_unchanged_objects
+          @objects.each do |object|
+            initial_object = @loaded_objects[object.object_id]
+            @to_be_saved_objects << object unless initial_object && object == initial_object
+          end
+          @loaded_objects.clear
+        end
+
         # save all objects which needs to be
         def save_all()
+          filter_unchanged_objects
           @store.transaction do
             @save_in_progress = true # allows saving
-            @objects.each do |object|
+            @to_be_saved_objects.each do |object|
               if @to_delete.include?(object)
                 delete_in_real(object)
               else
@@ -158,6 +172,7 @@ module Lims::Core
             end
             @save_in_progress = false
           end
+          @to_be_saved_objects.clear
         end
 
         # Call to 
